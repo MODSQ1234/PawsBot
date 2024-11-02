@@ -22,7 +22,7 @@ const main = async () => {
 // Wrap main function execution in an async context to handle asynchronous operations
 (async () => {
   try {
-    /* const latestVersion = await axios.get(
+    const latestVersion = await axios.get(
       "https://raw.githubusercontent.com/Freddywhest/PawsBot/refs/heads/main/package.json"
     );
     if (!_.isEqual(latestVersion.data.version, version)) {
@@ -30,7 +30,7 @@ const main = async () => {
         `You are using version <bl>${version}</bl> of the ${name} bot, while the latest version is <lb>${latestVersion.data.version}</lb>. Please update the bot.\n\n`
       );
       process.exit(1);
-    } */
+    }
     await main();
   } catch (error) {
     throw error;

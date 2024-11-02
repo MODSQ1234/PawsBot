@@ -14,6 +14,7 @@ const _ = require("lodash");
 const path = require("path");
 const FdyTmp = require("fdy-tmp");
 const { CW, sample } = require("../utils/helper");
+const { checkUrls } = require("../utils/assetsChecker");
 
 class Tapper {
   constructor(tg_client) {
@@ -123,7 +124,6 @@ class Tapper {
         if (!_.isEmpty(queryStringFromCache)) {
           const jsonData = {
             data: queryStringFromCache,
-            referralCode,
           };
 
           const va_hc = axios.create({
@@ -349,6 +349,7 @@ class Tapper {
         withCredentials: true,
       });
     }
+    await checkUrls(this.bot_name, this.session_name);
     while (runCount < 1) {
       try {
         const currentTime = _.floor(Date.now() / 1000);
@@ -401,6 +402,7 @@ class Tapper {
             parser.toJson(tg_web_data?.data)
           );
 
+          await checkUrls(this.bot_name, this.session_name);
           const link_wallet = await this.api.link_wallet(http_client, wallet);
           if (link_wallet?.success) {
             logger.info(
@@ -426,21 +428,26 @@ class Tapper {
             );
             if (_.size(filtered_quests) > 0) {
               for (const quest of filtered_quests) {
-                if (
-                  !profile_data?.data?.userData?.wallet &&
-                  quest?.code?.toLowerCase() === "wallet"
-                ) {
-                  continue;
-                }
+                const totalTime = await checkUrls(
+                  this.bot_name,
+                  this.session_name
+                );
+
                 const sleep_quest = _.random(
                   settings.DELAY_BETWEEN_QUEST[0],
                   settings.DELAY_BETWEEN_QUEST[1]
                 );
+
+                const sleep_time =
+                  _.subtract(sleep_quest, totalTime) > 0
+                    ? _.round(_.subtract(sleep_quest, totalTime))
+                    : 0;
                 logger.info(
-                  `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Sleeping for ${sleep_quest} seconds before starting <la>Quest:</la> <pi>${quest?.title}</pi>`
+                  `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Sleeping for ${sleep_time} seconds before starting <la>Quest:</la> <pi>${quest?.title}</pi>`
                 );
 
-                await sleep(sleep_quest);
+                await sleep(sleep_time);
+
                 const questId = quest?._id;
                 const complete_quests = await this.api.complete_quests(
                   http_client,
@@ -451,7 +458,7 @@ class Tapper {
                   logger.info(
                     `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Completed quest: <la>${quest?.title}</la>`
                   );
-                  await sleep(_.random(2, 5));
+                  await sleep(_.random(10, 15));
                   const claim_quests = await this.api.claim_quests(
                     http_client,
                     questId
@@ -482,6 +489,7 @@ class Tapper {
         if (_.isEmpty(profile_data?.data)) {
           continue;
         }
+        await checkUrls(this.bot_name, this.session_name);
 
         logger.info(
           `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Balance: <la>${profile_data?.data?.gameData?.balance}</la> | From hamster: <pi>${profile_data?.data?.allocationData?.hamster?.converted}</pi> | From paws: <bl>${profile_data?.data?.allocationData?.paws?.converted}</bl> | From dogs: <lb>${profile_data?.data?.allocationData?.dogs?.converted}</lb> | From notcoin: <vo>${profile_data?.data?.allocationData?.notcoin?.converted}</vo> | From TG Premium: <la>${profile_data?.data?.allocationData?.telegram?.converted}</la>`
@@ -492,7 +500,7 @@ class Tapper {
         );
       } finally {
         if (added_wallet) {
-          if (this.tg_client.connected) {
+          if (this?.tg_client?.connected) {
             await this.tg_client.disconnect();
             await this.tg_client.destroy();
           }
