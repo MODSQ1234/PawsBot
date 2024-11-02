@@ -1,6 +1,6 @@
 const assetsConfig = require("../../assets.json");
 const logger = require("../utils/logger");
-const gameName = "TON Station";
+const gameName = "PAWS";
 const axios = require("axios");
 
 async function checkUrls(bot_name, session_name) {
